@@ -16,6 +16,7 @@ package terraform
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -70,6 +71,9 @@ type DefaultClient struct {
 
 	// usePluginCache determines whether or not to set the TF_PLUGIN_CACHE_DIR env var
 	usePluginCache bool
+
+	// optional writer for sending plan/apply output to a secondary location
+	cmdOutput io.Writer
 }
 
 //go:generate pegomock generate -m --use-experimental-model-gen --package mocks -o mocks/mock_downloader.go Downloader
@@ -101,6 +105,7 @@ func NewClientWithDefaultVersion(
 	tfDownloader Downloader,
 	usePluginCache bool,
 	fetchAsync bool,
+	cmdOutput io.Writer,
 ) (*DefaultClient, error) {
 	var finalDefaultVersion *version.Version
 	var localVersion *version.Version
@@ -168,6 +173,7 @@ func NewClientWithDefaultVersion(
 		versionsLock:            &versionsLock,
 		versions:                versions,
 		usePluginCache:          usePluginCache,
+		cmdOutput:               cmdOutput,
 	}, nil
 
 }
@@ -195,6 +201,7 @@ func NewTestClient(
 		tfDownloader,
 		usePluginCache,
 		false,
+		nil,
 	)
 }
 
@@ -216,7 +223,8 @@ func NewClient(
 	defaultVersionFlagName string,
 	tfDownloadURL string,
 	tfDownloader Downloader,
-	usePluginCache bool) (*DefaultClient, error) {
+	usePluginCache bool,
+	cmdOutput io.Writer) (*DefaultClient, error) {
 	return NewClientWithDefaultVersion(
 		log,
 		binDir,
@@ -229,6 +237,7 @@ func NewClient(
 		tfDownloader,
 		usePluginCache,
 		true,
+		cmdOutput,
 	)
 }
 
@@ -270,15 +279,23 @@ func (c *DefaultClient) RunCommandWithVersion(log logging.SimpleLogging, path st
 	for key, val := range customEnvVars {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, val))
 	}
+	var buf bytes.Buffer
+	writers := []io.Writer{&buf}
+	if c.cmdOutput != nil {
+		writers = append(writers, c.cmdOutput)
+	}
+	mw := io.MultiWriter(writers...)
 	cmd.Env = envVars
-	out, err := cmd.CombinedOutput()
+	cmd.Stdout = mw
+	cmd.Stderr = mw
+	err = cmd.Run()
 	if err != nil {
 		err = errors.Wrapf(err, "running %q in %q", tfCmd, path)
 		log.Err(err.Error())
-		return string(out), err
+		return string(buf.Bytes()), err
 	}
 	log.Info("successfully ran %q in %q", tfCmd, path)
-	return string(out), nil
+	return string(buf.Bytes()), nil
 }
 
 // prepCmd builds a ready to execute command based on the version of terraform

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -247,6 +248,36 @@ func TestDefaultClient_RunCommandAsync_Input(t *testing.T) {
 	out, err := waitCh(outCh)
 	Ok(t, err)
 	Equals(t, "echo me", out)
+}
+
+// test that we save command output to a provided io.Writer
+func TestDefaultClient_RunCommandWithVersion_CmdOutput(t *testing.T) {
+	var outBuffer bytes.Buffer
+	v, err := version.NewVersion("0.11.11")
+	Ok(t, err)
+	tmp, cleanup := TempDir(t)
+	defer cleanup()
+	client := &DefaultClient{
+		defaultVersion:          v,
+		terraformPluginCacheDir: tmp,
+		overrideTF:              "echo",
+		usePluginCache:          true,
+		cmdOutput:               &outBuffer,
+	}
+
+	args := []string{
+		"TF_IN_AUTOMATION=$TF_IN_AUTOMATION",
+		"TF_PLUGIN_CACHE_DIR=$TF_PLUGIN_CACHE_DIR",
+		"WORKSPACE=$WORKSPACE",
+		"ATLANTIS_TERRAFORM_VERSION=$ATLANTIS_TERRAFORM_VERSION",
+		"DIR=$DIR",
+	}
+	log := logging.NewNoopLogger(t)
+	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace")
+	Ok(t, err)
+	exp := fmt.Sprintf("TF_IN_AUTOMATION=true TF_PLUGIN_CACHE_DIR=%s WORKSPACE=workspace ATLANTIS_TERRAFORM_VERSION=0.11.11 DIR=%s\n", tmp, tmp)
+	Equals(t, exp, out)
+	Equals(t, exp, outBuffer.String())
 }
 
 func waitCh(ch <-chan Line) (string, error) {
