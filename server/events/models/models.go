@@ -18,6 +18,7 @@ package models
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	paths "path"
 	"regexp"
@@ -353,6 +354,8 @@ type ProjectCommandContext struct {
 	AutoplanEnabled bool
 	// BaseRepo is the repository that the pull request will be merged into.
 	BaseRepo Repo
+	// EchoOutput is an optional writer where terraform command output is sent
+	EchoOutput io.Writer
 	// EscapedCommentArgs are the extra arguments that were added to the atlantis
 	// command, ex. atlantis plan -- -target=resource. We then escape them
 	// by adding a \ before each character so that they can be used within

@@ -41,7 +41,7 @@ type Client interface {
 	// RunCommandWithVersion executes terraform with args in path. If v is nil,
 	// it will use the default Terraform version. workspace is the Terraform
 	// workspace which should be set as an environment variable.
-	RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *version.Version, workspace string) (string, error)
+	RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *version.Version, workspace string, echo io.Writer) (string, error)
 
 	// EnsureVersion makes sure that terraform version `v` is available to use
 	EnsureVersion(log logging.SimpleLogging, v *version.Version) error
@@ -71,9 +71,6 @@ type DefaultClient struct {
 
 	// usePluginCache determines whether or not to set the TF_PLUGIN_CACHE_DIR env var
 	usePluginCache bool
-
-	// optional writer for sending plan/apply output to a secondary location
-	cmdOutput io.Writer
 }
 
 //go:generate pegomock generate -m --use-experimental-model-gen --package mocks -o mocks/mock_downloader.go Downloader
@@ -105,7 +102,6 @@ func NewClientWithDefaultVersion(
 	tfDownloader Downloader,
 	usePluginCache bool,
 	fetchAsync bool,
-	cmdOutput io.Writer,
 ) (*DefaultClient, error) {
 	var finalDefaultVersion *version.Version
 	var localVersion *version.Version
@@ -173,7 +169,6 @@ func NewClientWithDefaultVersion(
 		versionsLock:            &versionsLock,
 		versions:                versions,
 		usePluginCache:          usePluginCache,
-		cmdOutput:               cmdOutput,
 	}, nil
 
 }
@@ -201,7 +196,6 @@ func NewTestClient(
 		tfDownloader,
 		usePluginCache,
 		false,
-		nil,
 	)
 }
 
@@ -223,8 +217,7 @@ func NewClient(
 	defaultVersionFlagName string,
 	tfDownloadURL string,
 	tfDownloader Downloader,
-	usePluginCache bool,
-	cmdOutput io.Writer) (*DefaultClient, error) {
+	usePluginCache bool) (*DefaultClient, error) {
 	return NewClientWithDefaultVersion(
 		log,
 		binDir,
@@ -237,7 +230,6 @@ func NewClient(
 		tfDownloader,
 		usePluginCache,
 		true,
-		cmdOutput,
 	)
 }
 
@@ -270,7 +262,7 @@ func (c *DefaultClient) EnsureVersion(log logging.SimpleLogging, v *version.Vers
 }
 
 // See Client.RunCommandWithVersion.
-func (c *DefaultClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, customEnvVars map[string]string, v *version.Version, workspace string) (string, error) {
+func (c *DefaultClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, customEnvVars map[string]string, v *version.Version, workspace string, echo io.Writer) (string, error) {
 	tfCmd, cmd, err := c.prepCmd(log, v, workspace, path, args)
 	if err != nil {
 		return "", err
@@ -281,8 +273,9 @@ func (c *DefaultClient) RunCommandWithVersion(log logging.SimpleLogging, path st
 	}
 	var buf bytes.Buffer
 	writers := []io.Writer{&buf}
-	if c.cmdOutput != nil {
-		writers = append(writers, c.cmdOutput)
+	if echo != nil {
+		log.Debug("echoing command output to %v", echo)
+		writers = append(writers, echo)
 	}
 	mw := io.MultiWriter(writers...)
 	cmd.Env = envVars

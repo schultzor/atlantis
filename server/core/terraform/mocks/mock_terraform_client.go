@@ -7,6 +7,7 @@ import (
 	go_version "github.com/hashicorp/go-version"
 	pegomock "github.com/petergtz/pegomock"
 	logging "github.com/runatlantis/atlantis/server/logging"
+	io "io"
 	"reflect"
 	"time"
 )
@@ -26,11 +27,11 @@ func NewMockClient(options ...pegomock.Option) *MockClient {
 func (mock *MockClient) SetFailHandler(fh pegomock.FailHandler) { mock.fail = fh }
 func (mock *MockClient) FailHandler() pegomock.FailHandler      { return mock.fail }
 
-func (mock *MockClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *go_version.Version, workspace string) (string, error) {
+func (mock *MockClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *go_version.Version, workspace string, echo io.Writer) (string, error) {
 	if mock == nil {
 		panic("mock must not be nil. Use myMock := NewMockClient().")
 	}
-	params := []pegomock.Param{log, path, args, envs, v, workspace}
+	params := []pegomock.Param{log, path, args, envs, v, workspace, echo}
 	result := pegomock.GetGenericMockFrom(mock).Invoke("RunCommandWithVersion", params, []reflect.Type{reflect.TypeOf((*string)(nil)).Elem(), reflect.TypeOf((*error)(nil)).Elem()})
 	var ret0 string
 	var ret1 error
@@ -97,8 +98,8 @@ type VerifierMockClient struct {
 	timeout                time.Duration
 }
 
-func (verifier *VerifierMockClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *go_version.Version, workspace string) *MockClient_RunCommandWithVersion_OngoingVerification {
-	params := []pegomock.Param{log, path, args, envs, v, workspace}
+func (verifier *VerifierMockClient) RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *go_version.Version, workspace string, echo io.Writer) *MockClient_RunCommandWithVersion_OngoingVerification {
+	params := []pegomock.Param{log, path, args, envs, v, workspace, echo}
 	methodInvocations := pegomock.GetGenericMockFrom(verifier.mock).Verify(verifier.inOrderContext, verifier.invocationCountMatcher, "RunCommandWithVersion", params, verifier.timeout)
 	return &MockClient_RunCommandWithVersion_OngoingVerification{mock: verifier.mock, methodInvocations: methodInvocations}
 }
@@ -108,12 +109,12 @@ type MockClient_RunCommandWithVersion_OngoingVerification struct {
 	methodInvocations []pegomock.MethodInvocation
 }
 
-func (c *MockClient_RunCommandWithVersion_OngoingVerification) GetCapturedArguments() (logging.SimpleLogging, string, []string, map[string]string, *go_version.Version, string) {
-	log, path, args, envs, v, workspace := c.GetAllCapturedArguments()
-	return log[len(log)-1], path[len(path)-1], args[len(args)-1], envs[len(envs)-1], v[len(v)-1], workspace[len(workspace)-1]
+func (c *MockClient_RunCommandWithVersion_OngoingVerification) GetCapturedArguments() (logging.SimpleLogging, string, []string, map[string]string, *go_version.Version, string, io.Writer) {
+	log, path, args, envs, v, workspace, echo := c.GetAllCapturedArguments()
+	return log[len(log)-1], path[len(path)-1], args[len(args)-1], envs[len(envs)-1], v[len(v)-1], workspace[len(workspace)-1], echo[len(echo)-1]
 }
 
-func (c *MockClient_RunCommandWithVersion_OngoingVerification) GetAllCapturedArguments() (_param0 []logging.SimpleLogging, _param1 []string, _param2 [][]string, _param3 []map[string]string, _param4 []*go_version.Version, _param5 []string) {
+func (c *MockClient_RunCommandWithVersion_OngoingVerification) GetAllCapturedArguments() (_param0 []logging.SimpleLogging, _param1 []string, _param2 [][]string, _param3 []map[string]string, _param4 []*go_version.Version, _param5 []string, _param6 []io.Writer) {
 	params := pegomock.GetGenericMockFrom(c.mock).GetInvocationParams(c.methodInvocations)
 	if len(params) > 0 {
 		_param0 = make([]logging.SimpleLogging, len(c.methodInvocations))
@@ -139,6 +140,10 @@ func (c *MockClient_RunCommandWithVersion_OngoingVerification) GetAllCapturedArg
 		_param5 = make([]string, len(c.methodInvocations))
 		for u, param := range params[5] {
 			_param5[u] = param.(string)
+		}
+		_param6 = make([]io.Writer, len(c.methodInvocations))
+		for u, param := range params[6] {
+			_param6[u] = param.(io.Writer)
 		}
 	}
 	return

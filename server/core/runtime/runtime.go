@@ -5,6 +5,7 @@ package runtime
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -25,7 +26,7 @@ const (
 // TerraformExec brings the interface from TerraformClient into this package
 // without causing circular imports.
 type TerraformExec interface {
-	RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *version.Version, workspace string) (string, error)
+	RunCommandWithVersion(log logging.SimpleLogging, path string, args []string, envs map[string]string, v *version.Version, workspace string, echo io.Writer) (string, error)
 	EnsureVersion(log logging.SimpleLogging, v *version.Version) error
 }
 

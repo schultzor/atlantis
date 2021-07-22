@@ -106,7 +106,7 @@ func TestDefaultClient_RunCommandWithVersion_EnvVars(t *testing.T) {
 		"DIR=$DIR",
 	}
 	log := logging.NewNoopLogger(t)
-	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace")
+	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace", nil)
 	Ok(t, err)
 	exp := fmt.Sprintf("TF_IN_AUTOMATION=true TF_PLUGIN_CACHE_DIR=%s WORKSPACE=workspace ATLANTIS_TERRAFORM_VERSION=0.11.11 DIR=%s\n", tmp, tmp)
 	Equals(t, exp, out)
@@ -131,7 +131,7 @@ func TestDefaultClient_RunCommandWithVersion_Error(t *testing.T) {
 		"1",
 	}
 	log := logging.NewNoopLogger(t)
-	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace")
+	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace", nil)
 	ErrEquals(t, fmt.Sprintf(`running "echo dying && exit 1" in %q: exit status 1`, tmp), err)
 	// Test that we still get our output.
 	Equals(t, "dying\n", out)
@@ -262,7 +262,6 @@ func TestDefaultClient_RunCommandWithVersion_CmdOutput(t *testing.T) {
 		terraformPluginCacheDir: tmp,
 		overrideTF:              "echo",
 		usePluginCache:          true,
-		cmdOutput:               &outBuffer,
 	}
 
 	args := []string{
@@ -273,7 +272,7 @@ func TestDefaultClient_RunCommandWithVersion_CmdOutput(t *testing.T) {
 		"DIR=$DIR",
 	}
 	log := logging.NewNoopLogger(t)
-	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace")
+	out, err := client.RunCommandWithVersion(log, tmp, args, map[string]string{}, nil, "workspace", &outBuffer)
 	Ok(t, err)
 	exp := fmt.Sprintf("TF_IN_AUTOMATION=true TF_PLUGIN_CACHE_DIR=%s WORKSPACE=workspace ATLANTIS_TERRAFORM_VERSION=0.11.11 DIR=%s\n", tmp, tmp)
 	Equals(t, exp, out)

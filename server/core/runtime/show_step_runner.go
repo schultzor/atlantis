@@ -46,6 +46,7 @@ func (p *ShowStepRunner) Run(ctx models.ProjectCommandContext, extraArgs []strin
 		envs,
 		tfVersion,
 		ctx.Workspace,
+		ctx.EchoOutput,
 	)
 
 	if err != nil {
