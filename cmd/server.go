@@ -59,6 +59,7 @@ const (
 	DisableAutoplanFlag        = "disable-autoplan"
 	DisableMarkdownFoldingFlag = "disable-markdown-folding"
 	DisableRepoLockingFlag     = "disable-repo-locking"
+	EchoTfCmdOutputFlag        = "echo-tf-cmd-output"
 	EnablePolicyChecksFlag     = "enable-policy-checks"
 	EnableRegExpCmdFlag        = "enable-regexp-cmd"
 	GHHostnameFlag             = "gh-hostname"
@@ -180,6 +181,10 @@ var stringFlags = map[string]stringFlag{
 	DataDirFlag: {
 		description:  "Path to directory to store Atlantis data.",
 		defaultValue: DefaultDataDir,
+	},
+	EchoTfCmdOutputFlag: {
+		description:  "Optional stream to copy Terraform command output to during plan & apply operations, either '', 'stdin', or 'stderr'.",
+		defaultValue: "",
 	},
 	GHHostnameFlag: {
 		description:  "Hostname of your Github Enterprise installation. If using github.com, no need to set.",

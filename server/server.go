@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -273,6 +274,16 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		return nil, err
 	}
 
+	var cmdOutputStream io.Writer
+	switch strings.ToLower(userConfig.EchoTfCmdOutput) {
+	case "stderr":
+		cmdOutputStream = os.Stderr
+	case "stdout":
+		cmdOutputStream = os.Stdout
+	default:
+		cmdOutputStream = nil
+	}
+
 	terraformClient, err := terraform.NewClient(
 		logger,
 		binDir,
@@ -284,7 +295,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		userConfig.TFDownloadURL,
 		&terraform.DefaultDownloader{},
 		true,
-		nil)
+		cmdOutputStream)
 	// The flag.Lookup call is to detect if we're running in a unit test. If we
 	// are, then we don't error out because we don't have/want terraform
 	// installed on our CI system where the unit tests run.
